@@ -1,0 +1,281 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdminEmail() {
+      return signedIn() && request.auth.token.email == "yfang097@ucr.edu";
+    }
+
+    function currentUserPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasUserDoc() {
+      return signedIn() && exists(currentUserPath());
+    }
+
+    function currentRole() {
+      return hasUserDoc() ? get(currentUserPath()).data.role : null;
+    }
+
+    function isAdmin() {
+      return currentRole() == "admin";
+    }
+
+    function isStudent() {
+      return currentRole() == "student";
+    }
+
+    function isAlumni() {
+      return currentRole() == "alumni";
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userFields() {
+      return ["uid", "role", "name", "email", "photoURL", "createdAt", "updatedAt", "lastLoginAt"];
+    }
+
+    function validUserCreate(uid) {
+      return request.resource.data.keys().hasOnly(userFields())
+        && request.resource.data.keys().hasAll(["uid", "role", "name", "email", "createdAt", "updatedAt", "lastLoginAt"])
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 120
+        && (
+          request.resource.data.role in ["student", "alumni"]
+          || (
+            request.resource.data.role == "admin"
+            && (
+              isSuperAdminEmail()
+              || (
+                exists(/databases/$(database)/documents/adminInvites/$(request.auth.token.email))
+                && get(/databases/$(database)/documents/adminInvites/$(request.auth.token.email)).data.status == "accepted"
+                && get(/databases/$(database)/documents/adminInvites/$(request.auth.token.email)).data.acceptedByUid == uid
+              )
+            )
+          )
+        )
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.lastLoginAt == request.time;
+    }
+
+    function ownUserUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["name", "photoURL", "updatedAt", "lastLoginAt"])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function adminUserUpdate() {
+      return isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["name", "photoURL", "updatedAt", "lastLoginAt"])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function optionalText(field, max) {
+      return !request.resource.data.keys().hasAny([field])
+        || request.resource.data[field] == null
+        || (request.resource.data[field] is string && request.resource.data[field].size() <= max);
+    }
+
+    function optionalHttpsUrl(field, max) {
+      return !request.resource.data.keys().hasAny([field])
+        || request.resource.data[field] == null
+        || (
+          request.resource.data[field] is string
+          && request.resource.data[field].size() <= max
+          && request.resource.data[field].matches("^https://.+")
+        );
+    }
+
+    function validStringList(field, min, max) {
+      return request.resource.data[field] is list
+        && request.resource.data[field].size() >= min
+        && request.resource.data[field].size() <= max;
+    }
+
+    function baseCreate(uid) {
+      return request.resource.data.uid == uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function baseUpdate(uid) {
+      return request.resource.data.uid == uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validStudentProfile() {
+      return request.resource.data.keys().hasOnly([
+          "uid", "fullName", "program", "targetIndustry", "careerInterests",
+          "linkedinUrl", "resumeUrl", "meetingGoals", "etiquetteCompleted",
+          "createdAt", "updatedAt"
+        ])
+        && request.resource.data.keys().hasAll([
+          "uid", "fullName", "program", "targetIndustry", "careerInterests",
+          "etiquetteCompleted", "createdAt", "updatedAt"
+        ])
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() >= 1
+        && request.resource.data.fullName.size() <= 120
+        && request.resource.data.program is string
+        && request.resource.data.program.size() >= 1
+        && request.resource.data.program.size() <= 120
+        && request.resource.data.targetIndustry is string
+        && request.resource.data.targetIndustry.size() >= 1
+        && request.resource.data.targetIndustry.size() <= 120
+        && validStringList("careerInterests", 1, 12)
+        && request.resource.data.etiquetteCompleted is bool
+        && optionalHttpsUrl("linkedinUrl", 300)
+        && optionalHttpsUrl("resumeUrl", 1000)
+        && optionalText("meetingGoals", 1000);
+    }
+
+    function validAlumniProfile() {
+      return request.resource.data.keys().hasOnly([
+          "uid", "fullName", "title", "company", "industry", "functionArea",
+          "location", "bio", "supportAreas", "linkedinUrl", "profilePhotoUrl",
+          "isPublished", "createdAt", "updatedAt"
+        ])
+        && request.resource.data.keys().hasAll([
+          "uid", "fullName", "title", "company", "industry", "functionArea",
+          "bio", "supportAreas", "linkedinUrl", "isPublished", "createdAt", "updatedAt"
+        ])
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() >= 1
+        && request.resource.data.fullName.size() <= 120
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.company is string
+        && request.resource.data.company.size() >= 1
+        && request.resource.data.company.size() <= 120
+        && request.resource.data.industry is string
+        && request.resource.data.industry.size() >= 1
+        && request.resource.data.industry.size() <= 120
+        && request.resource.data.functionArea is string
+        && request.resource.data.functionArea.size() >= 1
+        && request.resource.data.functionArea.size() <= 120
+        && request.resource.data.bio is string
+        && request.resource.data.bio.size() >= 20
+        && request.resource.data.bio.size() <= 1000
+        && request.resource.data.linkedinUrl is string
+        && request.resource.data.linkedinUrl.size() <= 300
+        && request.resource.data.linkedinUrl.matches("^https://.*linkedin[.]com/.+")
+        && validStringList("supportAreas", 1, 12)
+        && request.resource.data.isPublished is bool
+        && optionalText("location", 120)
+        && optionalHttpsUrl("profilePhotoUrl", 1000);
+    }
+
+    function validSlotCreate() {
+      return request.resource.data.keys().hasOnly([
+          "slotId", "alumniId", "startTime", "endTime", "track", "status", "createdAt", "updatedAt"
+        ])
+        && request.resource.data.slotId == request.resource.id
+        && request.resource.data.alumniId == request.auth.uid
+        && request.resource.data.startTime is timestamp
+        && request.resource.data.endTime is timestamp
+        && request.resource.data.startTime > request.time
+        && request.resource.data.endTime > request.resource.data.startTime
+        && request.resource.data.track in ["mockInterview", "resumeReview", "careerChat", "industryConversation"]
+        && request.resource.data.status == "available"
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validSlotUpdate() {
+      return request.resource.data.slotId == resource.data.slotId
+        && request.resource.data.alumniId == resource.data.alumniId
+        && request.resource.data.alumniId == request.auth.uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ["available", "cancelled"]
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.endTime > request.resource.data.startTime;
+    }
+
+    function validChecklist(uid) {
+      return request.resource.data.keys().hasOnly(["uid", "completed", "completedAt", "answers"])
+        && request.resource.data.uid == uid
+        && request.resource.data.completed == true
+        && request.resource.data.completedAt == request.time
+        && request.resource.data.answers is map
+        && request.resource.data.answers.keys().hasOnly([
+          "prepareQuestions", "uploadResume", "joinOnTime", "professionalCommunication", "sendThankYouNote"
+        ])
+        && request.resource.data.answers.prepareQuestions == true
+        && request.resource.data.answers.uploadResume == true
+        && request.resource.data.answers.joinOnTime == true
+        && request.resource.data.answers.professionalCommunication == true
+        && request.resource.data.answers.sendThankYouNote == true;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid) && validUserCreate(uid);
+      allow update: if (isOwner(uid) && ownUserUpdate()) || adminUserUpdate();
+      allow delete: if isAdmin();
+    }
+
+    match /adminInvites/{email} {
+      allow get: if isSuperAdminEmail() || (signedIn() && email == request.auth.token.email);
+      allow list: if isSuperAdminEmail();
+      allow create, update, delete: if false;
+    }
+
+    match /studentProfiles/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid) && isStudent() && baseCreate(uid) && validStudentProfile();
+      allow update: if isOwner(uid) && isStudent() && baseUpdate(uid) && validStudentProfile();
+      allow delete: if isAdmin();
+    }
+
+    match /alumniProfiles/{uid} {
+      allow read: if isAdmin() || isOwner(uid) || (signedIn() && resource.data.isPublished == true);
+      allow create: if isOwner(uid) && isAlumni() && baseCreate(uid) && validAlumniProfile();
+      allow update: if isOwner(uid) && isAlumni() && baseUpdate(uid) && validAlumniProfile();
+      allow delete: if isAdmin();
+    }
+
+    match /availabilitySlots/{slotId} {
+      allow read: if signedIn();
+      allow create: if isAlumni() && validSlotCreate();
+      allow update: if isAdmin()
+        || (isAlumni() && resource.data.alumniId == request.auth.uid && validSlotUpdate());
+      allow delete: if isAdmin()
+        || (isAlumni() && resource.data.alumniId == request.auth.uid && resource.data.status != "booked");
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.studentId == request.auth.uid)
+        || (signedIn() && resource.data.alumniId == request.auth.uid);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /etiquetteChecklist/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update: if isOwner(uid) && isStudent() && validChecklist(uid);
+      allow delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

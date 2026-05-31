@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.env.local
+.firebase
+.playwright-cli
+firebase-debug.log
+firestore-debug.log
+storage-debug.log
+functions/node_modules
+functions/lib
+functions/.env
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
