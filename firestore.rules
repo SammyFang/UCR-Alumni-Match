@@ -128,18 +128,31 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
     }
 
-    function validStudentProfile() {
+    function validStudentProfile(requireUcrEmail) {
       return request.resource.data.keys().hasOnly([
           "uid", "ucrEmail", "fullName", "program", "targetIndustry", "careerInterests",
           "linkedinUrl", "resumeUrl", "meetingGoals", "etiquetteCompleted",
           "createdAt", "updatedAt"
         ])
         && request.resource.data.keys().hasAll([
-          "uid", "ucrEmail", "fullName", "program", "targetIndustry", "careerInterests",
+          "uid", "fullName", "program", "targetIndustry", "careerInterests",
           "etiquetteCompleted", "createdAt", "updatedAt"
         ])
-        && request.resource.data.ucrEmail == request.auth.token.email
-        && isUcrEmail(request.resource.data.ucrEmail)
+        && (
+          (
+            requireUcrEmail
+            && request.resource.data.keys().hasAny(["ucrEmail"])
+            && request.resource.data.ucrEmail == request.auth.token.email
+            && isUcrEmail(request.resource.data.ucrEmail)
+          )
+          || (
+            !requireUcrEmail
+            && (
+              !request.resource.data.keys().hasAny(["ucrEmail"])
+              || isUcrEmail(request.resource.data.ucrEmail)
+            )
+          )
+        )
         && request.resource.data.fullName is string
         && request.resource.data.fullName.size() >= 1
         && request.resource.data.fullName.size() <= 120
@@ -250,8 +263,8 @@ service cloud.firestore {
 
     match /studentProfiles/{uid} {
       allow read: if isOwner(uid) || isAdmin();
-      allow create: if isOwner(uid) && isStudent() && baseCreate(uid) && validStudentProfile();
-      allow update: if isOwner(uid) && isStudent() && baseUpdate(uid) && validStudentProfile();
+      allow create: if isOwner(uid) && isStudent() && baseCreate(uid) && validStudentProfile(true);
+      allow update: if isOwner(uid) && isStudent() && baseUpdate(uid) && validStudentProfile(false);
       allow delete: if isAdmin();
     }
 

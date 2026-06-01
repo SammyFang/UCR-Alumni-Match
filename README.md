@@ -15,7 +15,7 @@ Lightweight Firebase MVP for alumni-student career matching. The app uses Fireba
 
 ## Account Policy
 
-- Students must sign in with a verified `@ucr.edu` email address. Personal email accounts cannot select the student role or book sessions.
+- Students must use an `@ucr.edu` email address for the student role and booking. Google Login prompts for UCR accounts first; personal email accounts can still be used for alumni accounts.
 - Student name, email, and photo come from Firebase Authentication. Program, target industry, interests, resume, and etiquette are still completed by the student because this MVP intentionally does not use Institutional SSO or SIS data sync.
 - Alumni can use their preferred email address.
 - Admin access remains invite-only, with invitations controlled by `yfang097@ucr.edu`.

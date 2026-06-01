@@ -46,7 +46,12 @@ export function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        hd: "ucr.edu",
+        prompt: "select_account",
+      });
+      await signInWithPopup(auth, provider);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -108,7 +113,7 @@ export function RoleSelectionPage() {
     if (!firebaseUser?.email) return;
     if (role === "student" && !isUcrEmail(firebaseUser.email)) {
       setSelectedRole(null);
-      setError("Students must use a verified @ucr.edu email. Alumni can continue with their preferred email.");
+      setError(`Signed in as ${firebaseUser.email}. Students must use an @ucr.edu email. Alumni can continue with this account.`);
       return;
     }
 
