@@ -38,6 +38,10 @@ export function isLinkedInUrl(value: string) {
   }
 }
 
+export function isUcrEmail(value?: string | null) {
+  return typeof value === "string" && /^[^@\s]+@ucr\.edu$/i.test(value.trim());
+}
+
 export function formatDateTime(value?: Timestamp | Date | null) {
   if (!value) return "Not set";
   const date = value instanceof Date ? value : value.toDate();

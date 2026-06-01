@@ -18,6 +18,7 @@ export interface AppUser {
 
 export interface StudentProfile {
   uid: string;
+  ucrEmail?: string;
   fullName: string;
   program: string;
   targetIndustry: string;

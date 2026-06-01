@@ -11,7 +11,7 @@ import {
 import { httpsCallable } from "firebase/functions";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { db, functions, storage } from "../lib/firebase";
-import { safeFileName } from "../lib/validators";
+import { isUcrEmail, safeFileName } from "../lib/validators";
 import type { Role, SlotTrack } from "../types";
 
 export async function createUserRole(params: {
@@ -21,6 +21,10 @@ export async function createUserRole(params: {
   email: string;
   photoURL?: string | null;
 }) {
+  if (params.role === "student" && !isUcrEmail(params.email)) {
+    throw new Error("Students must sign in with a UCR email address.");
+  }
+
   await setDoc(doc(db, "users", params.uid), {
     uid: params.uid,
     role: params.role,
@@ -46,6 +50,7 @@ export async function acceptAdminInvite(email: string, token: string) {
 export async function saveStudentProfile(
   uid: string,
   values: {
+    ucrEmail: string;
     fullName: string;
     program: string;
     targetIndustry: string;
@@ -60,6 +65,7 @@ export async function saveStudentProfile(
     ref,
     {
       uid,
+      ucrEmail: values.ucrEmail.trim(),
       fullName: values.fullName.trim(),
       program: values.program.trim(),
       targetIndustry: values.targetIndustry.trim(),
@@ -86,7 +92,7 @@ export async function uploadResume(uid: string, file: File) {
   return resumeUrl;
 }
 
-export async function completeEtiquette(uid: string) {
+export async function completeEtiquette(uid: string, ucrEmail: string) {
   const batch = writeBatch(db);
   batch.set(doc(db, "etiquetteChecklist", uid), {
     uid,
@@ -101,6 +107,7 @@ export async function completeEtiquette(uid: string) {
     },
   });
   batch.update(doc(db, "studentProfiles", uid), {
+    ucrEmail: ucrEmail.trim(),
     etiquetteCompleted: true,
     updatedAt: serverTimestamp(),
   });

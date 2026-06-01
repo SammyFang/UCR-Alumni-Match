@@ -13,6 +13,13 @@ Lightweight Firebase MVP for alumni-student career matching. The app uses Fireba
 5. Enable Firebase Hosting.
 6. Upgrade to Blaze before deploying Functions. The `bookSlot` and `cancelBooking` callables enforce booking limits, overlap checks, slot locking, and late-cancellation flags.
 
+## Account Policy
+
+- Students must sign in with a verified `@ucr.edu` email address. Personal email accounts cannot select the student role or book sessions.
+- Student name, email, and photo come from Firebase Authentication. Program, target industry, interests, resume, and etiquette are still completed by the student because this MVP intentionally does not use Institutional SSO or SIS data sync.
+- Alumni can use their preferred email address.
+- Admin access remains invite-only, with invitations controlled by `yfang097@ucr.edu`.
+
 ## Environment Variables
 
 Copy `.env.example` to `.env.local` and set:
@@ -34,7 +41,7 @@ If a Firebase web API key is exposed in GitHub, rotate it in Google Cloud Consol
 ## Firestore Collections
 
 - `users/{uid}`: role, name, email, photo, login timestamps.
-- `studentProfiles/{uid}`: student program, target industry, interests, resume URL, etiquette status.
+- `studentProfiles/{uid}`: UCR email, student program, target industry, interests, resume URL, etiquette status.
 - `alumniProfiles/{uid}`: alumni title, company, industry, support areas, LinkedIn URL, published status.
 - `availabilitySlots/{slotId}`: alumni-owned open, booked, or cancelled time slots.
 - `bookings/{bookingId}`: confirmed, cancelled, completed, or flagged sessions.
@@ -129,7 +136,7 @@ Removed from the previous concept:
 
 - LinkedIn Login and LinkedIn OAuth.
 - LinkedIn API import, token storage, profile sync, and monthly background sync.
-- Institutional SSO.
+- Institutional SSO. Students are instead restricted to `@ucr.edu` email accounts for reliable admin tracking.
 - External calendar integrations.
 - Advanced analytics dashboards, donut charts, competency rings, badges, and gamification.
 - Complex enterprise onboarding and three-column dashboards.

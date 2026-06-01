@@ -80,10 +80,10 @@ function Route({
   email: string;
 }) {
   if (role === "student") {
-    if (path === "/student/profile") return <StudentProfilePage uid={uid} displayName={displayName} />;
+    if (path === "/student/profile") return <StudentProfilePage uid={uid} displayName={displayName} email={email} />;
     if (path === "/student/alumni") return <StudentAlumniPage uid={uid} />;
     if (path === "/student/bookings") return <StudentBookingsPage uid={uid} />;
-    if (path === "/student/etiquette") return <StudentEtiquettePage uid={uid} />;
+    if (path === "/student/etiquette") return <StudentEtiquettePage uid={uid} email={email} />;
     return <StudentDashboard uid={uid} />;
   }
 

@@ -87,7 +87,7 @@ export function StudentDashboard({ uid }: { uid: string }) {
   );
 }
 
-export function StudentProfilePage({ uid, displayName }: { uid: string; displayName: string }) {
+export function StudentProfilePage({ uid, displayName, email }: { uid: string; displayName: string; email: string }) {
   const profileRef = useMemo(() => doc(db, "studentProfiles", uid), [uid]);
   const { data: profile } = useDocument<StudentProfile>(profileRef);
   const [fullName, setFullName] = useState(displayName);
@@ -130,6 +130,7 @@ export function StudentProfilePage({ uid, displayName }: { uid: string; displayN
     setLoading(true);
     try {
       await saveStudentProfile(uid, {
+        ucrEmail: email,
         fullName,
         program,
         targetIndustry,
@@ -156,6 +157,9 @@ export function StudentProfilePage({ uid, displayName }: { uid: string; displayN
       {error && <Notice type="error">{error}</Notice>}
       <Card>
         <Form onSubmit={submit}>
+          <Field label="UCR email">
+            <Input value={email} readOnly required />
+          </Field>
           <Field label="Full name">
             <Input value={fullName} onChange={(event) => setFullName(event.target.value)} required />
           </Field>
@@ -366,7 +370,7 @@ export function StudentBookingsPage({ uid }: { uid: string }) {
   );
 }
 
-export function StudentEtiquettePage({ uid }: { uid: string }) {
+export function StudentEtiquettePage({ uid, email }: { uid: string; email: string }) {
   const profileRef = useMemo(() => doc(db, "studentProfiles", uid), [uid]);
   const { data: profile } = useDocument<StudentProfile>(profileRef);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
@@ -385,7 +389,7 @@ export function StudentEtiquettePage({ uid }: { uid: string }) {
     setLoading(true);
     setError("");
     try {
-      await completeEtiquette(uid);
+      await completeEtiquette(uid, email);
     } catch (err) {
       setError(errorMessage(err));
     } finally {

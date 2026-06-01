@@ -7,7 +7,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
-import { errorMessage } from "../lib/validators";
+import { errorMessage, isUcrEmail } from "../lib/validators";
 import { createUserRole } from "../services/data";
 import type { Role } from "../types";
 import { Button, Card, Field, Form, Input, Notice } from "../components/ui";
@@ -106,6 +106,12 @@ export function RoleSelectionPage() {
 
   async function chooseRole(role: Role) {
     if (!firebaseUser?.email) return;
+    if (role === "student" && !isUcrEmail(firebaseUser.email)) {
+      setSelectedRole(null);
+      setError("Students must use a verified @ucr.edu email. Alumni can continue with their preferred email.");
+      return;
+    }
+
     setSelectedRole(role);
     setLoading(true);
     setError("");
@@ -133,7 +139,7 @@ export function RoleSelectionPage() {
           <RoleButton
             role="student"
             title="Student"
-            description="Prepare and book sessions."
+            description="Use @ucr.edu to prepare and book."
             loading={loading && selectedRole === "student"}
             onClick={chooseRole}
           />

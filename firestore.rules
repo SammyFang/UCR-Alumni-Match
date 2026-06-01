@@ -10,6 +10,10 @@ service cloud.firestore {
       return signedIn() && request.auth.token.email == "yfang097@ucr.edu";
     }
 
+    function isUcrEmail(email) {
+      return email is string && email.matches("^[^@\\s]+@[uU][cC][rR][.][eE][dD][uU]$");
+    }
+
     function currentUserPath() {
       return /databases/$(database)/documents/users/$(request.auth.uid);
     }
@@ -51,7 +55,11 @@ service cloud.firestore {
         && request.resource.data.name.size() >= 1
         && request.resource.data.name.size() <= 120
         && (
-          request.resource.data.role in ["student", "alumni"]
+          (
+            request.resource.data.role == "student"
+            && isUcrEmail(request.resource.data.email)
+          )
+          || request.resource.data.role == "alumni"
           || (
             request.resource.data.role == "admin"
             && (
@@ -122,14 +130,16 @@ service cloud.firestore {
 
     function validStudentProfile() {
       return request.resource.data.keys().hasOnly([
-          "uid", "fullName", "program", "targetIndustry", "careerInterests",
+          "uid", "ucrEmail", "fullName", "program", "targetIndustry", "careerInterests",
           "linkedinUrl", "resumeUrl", "meetingGoals", "etiquetteCompleted",
           "createdAt", "updatedAt"
         ])
         && request.resource.data.keys().hasAll([
-          "uid", "fullName", "program", "targetIndustry", "careerInterests",
+          "uid", "ucrEmail", "fullName", "program", "targetIndustry", "careerInterests",
           "etiquetteCompleted", "createdAt", "updatedAt"
         ])
+        && request.resource.data.ucrEmail == request.auth.token.email
+        && isUcrEmail(request.resource.data.ucrEmail)
         && request.resource.data.fullName is string
         && request.resource.data.fullName.size() >= 1
         && request.resource.data.fullName.size() <= 120

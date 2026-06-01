@@ -212,6 +212,7 @@ function StudentTable({ students }: { students: StudentProfile[] }) {
       <thead>
         <tr>
           <th>Name</th>
+          <th>Email</th>
           <th>Program</th>
           <th>Industry</th>
           <th>Ready</th>
@@ -221,6 +222,7 @@ function StudentTable({ students }: { students: StudentProfile[] }) {
         {students.map((student) => (
           <tr key={student.uid}>
             <td>{student.fullName}</td>
+            <td>{student.ucrEmail || "-"}</td>
             <td>{student.program}</td>
             <td>{student.targetIndustry}</td>
             <td><Status value={student.resumeUrl && student.etiquetteCompleted ? "ready" : "incomplete"} /></td>

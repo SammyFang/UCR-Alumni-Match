@@ -33,6 +33,10 @@ function normalizeEmail(value) {
   return email;
 }
 
+function isUcrEmail(value) {
+  return typeof value === "string" && /^[^@\s]+@ucr\.edu$/i.test(value.trim());
+}
+
 function requireSuperAdmin(request) {
   requireAuth(request);
   const email = request.auth.token.email?.toLowerCase();
@@ -145,7 +149,7 @@ async function requireStudent(transaction, uid) {
   const profileRef = db.collection("studentProfiles").doc(uid);
   const [userSnap, profileSnap] = await transaction.getAll(userRef, profileRef);
 
-  if (!userSnap.exists || userSnap.data().role !== "student") {
+  if (!userSnap.exists || userSnap.data().role !== "student" || !isUcrEmail(userSnap.data().email)) {
     throw new HttpsError("permission-denied", "Student account is required.");
   }
 
